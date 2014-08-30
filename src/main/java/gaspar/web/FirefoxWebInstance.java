@@ -6,8 +6,6 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.springframework.beans.factory.DisposableBean;
@@ -25,13 +23,7 @@ public class FirefoxWebInstance implements DisposableBean {
 
         log.info("Initializing firefox ...");
 
-        final DesiredCapabilities ffCapability = DesiredCapabilities.firefox();
-
-        final FirefoxProfile firefoxprofile = new FirefoxProfile();
-        firefoxprofile.setAssumeUntrustedCertificateIssuer(true);
-        ffCapability.setCapability(FirefoxDriver.PROFILE, firefoxprofile);
-
-        this.driver = new RemoteWebDriver(seleniumServerUrl, ffCapability);
+        this.driver = new RemoteWebDriver(seleniumServerUrl, DesiredCapabilities.internetExplorer());
 
         this.driver.manage().timeouts().implicitlyWait(1, TimeUnit.SECONDS);
     }

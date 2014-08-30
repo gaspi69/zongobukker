@@ -114,7 +114,7 @@ public class ZongobukkSearchAction extends WebAction {
             final String altAttribute = imgElement.getAttribute("alt");
             if (altAttribute == "Zongora") {
                 roomType = RoomType.PIANO;
-            } else if (altAttribute == "Pianínó") {
+            } else if (altAttribute == "PianÃ­nÃ³") {
                 roomType = RoomType.PIANINO;
             }
         }

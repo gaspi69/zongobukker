@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:jms="http://www.springframework.org/schema/jms" xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
+		p:location="classpath:application.properties" />
+
+	<!-- Google AUTH -->
+
+	<bean id="googleServiceAuthenticator" class="gaspar.google.data.GoogleServiceAuthenticator"
+		p:username="${gaspar.zongobukker.config.username}" p:password="${gaspar.zongobukker.config.password}"
+		init-method="init" />
+
+	<!-- Google AUTH END -->
+
+	<!-- Data -->
+
+	<bean id="userIndexTable" class="gaspar.google.data.GoogleTable"
+		p:authenticator-ref="googleServiceAuthenticator" p:feedUrl="${gaspar.zongobukker.config.feedUrl}"
+		p:spreadsheetTitle="${gaspar.zongobukker.config.index}"
+		p:worksheetTitle="${gaspar.zongobukker.config.index}" init-method="init" />
+
+	<bean id="googleTable" class="gaspar.google.data.GoogleTable"
+		scope="prototype" p:feedUrl="${gaspar.zongobukker.config.feedUrl}"
+		p:authenticator-ref="googleServiceAuthenticator" />
+
+	<!-- Data END -->
+
+	<!-- WEB stuff -->
+
+	<bean id="firefoxWebInstance" class="gaspar.web.FirefoxWebInstance">
+		<constructor-arg value="${gaspar.zongobukker.selenium.server.url}" />
+	</bean>
+
+	<bean id="zongobukkLoginAction" class="gaspar.zongobukker.web.ZongobukkLoginAction"
+		scope="prototype" p:loginPage="${gaspar.zongobukker.web.url.login}" />
+
+	<bean id="zongobukkLogoutAction" class="gaspar.zongobukker.web.ZongobukkLogoutAction"
+		scope="prototype" p:logoutPage="${gaspar.zongobukker.web.url.logout}" />
+
+	<bean id="daySelectAction" class="gaspar.zongobukker.web.ZongobukkSelectDayAction"
+		scope="prototype" p:daypickerLink="${gaspar.zongobukker.web.url.daypicker}" />
+
+	<bean id="timeslotSearchAction" class="gaspar.zongobukker.web.ZongobukkSearchAction"
+		scope="prototype" p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}" />
+
+	<bean id="zongobukkBookAction" class="gaspar.zongobukker.web.ZongobukkBookAction"
+		scope="prototype" p:alreadyBookedMessage="${gaspar.zongobukker.message.alreadyBooked}"
+		p:succesfullMessage="${gaspar.zongobukker.message.successful}" />
+
+	<!-- WEB stuff END -->
+
+
+	<!-- CORE -->
+
+	<bean id="userContext" class="gaspar.zongobukker.user.TableInitializationUserContext"
+		scope="prototype" p:timeslotFormat="${gaspar.zongobukker.config.format.timeslot}" />
+
+	<bean id="pianorRoomPredicate" class="gaspar.zongobukker.bean.PianorRoomPredicate"
+		scope="prototype" p:pianoRooms="${gaspar.zongobukker.room.priority}" />
+
+	<bean id="pianoRoomPriorityComparator" class="gaspar.zongobukker.bean.PianoRoomPriorityComparator"
+		scope="prototype" p:roomPriority="${gaspar.zongobukker.room.priority}" />
+
+	<bean id="zongobukkFinder" class="gaspar.zongobukker.core.PianoRoomFinder"
+		p:maxRetryCount="1" p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}"
+		p:pianorRoomPredicate-ref="pianorRoomPredicate"
+		p:pianoRoomPriorityComparator-ref="pianoRoomPriorityComparator" />
+
+	<bean id="zongobukkFacade" class="gaspar.zongobukker.SimpleZongobukkFacade"
+		p:zongobukkFinder-ref="zongobukkFinder" />
+
+	<bean class="gaspar.zongobukker.ZongobukkManager"
+		p:userIndexTable-ref="userIndexTable" p:zongobukkFacade-ref="zongobukkFacade" />
+
+	<!-- CORE END -->
+
+</beans>

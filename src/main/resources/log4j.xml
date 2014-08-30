@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+	<appender name="FileLog" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="threshold" value="info" />
+		<param name="file" value="/logs/zongobukker.log" />
+		<param name="encoding" value="utf-8" />
+		<param name="immediateFlush" value="true" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="conversionPattern" value="(%d{ISO8601}) %-5.5p [%t] %x%n\t%l%n\t%m%n" />
+		</layout>
+	</appender>
+
+	<appender name="ConsoleLog" class="org.apache.log4j.ConsoleAppender">
+		<param name="threshold" value="debug" />
+		<param name="encoding" value="utf-8" />
+		<param name="immediateFlush" value="true" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="conversionPattern" value="(%d{ISO8601}) %-5.5p [%t] %x %l%n\t%m%n" />
+		</layout>
+	</appender>
+
+	<logger name="eu">
+		<level value="warn" />
+	</logger>
+
+	<logger name="hu">
+		<level value="warn" />
+	</logger>
+
+	<logger name="net">
+		<level value="warn" />
+	</logger>
+
+	<logger name="org">
+		<level value="warn" />
+	</logger>
+
+	<root>
+		<priority value="debug" />
+		<appender-ref ref="FileLog" />
+		<appender-ref ref="ConsoleLog" />
+	</root>
+
+</log4j:configuration>

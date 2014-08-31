@@ -19,15 +19,6 @@ public abstract class WebAction implements Runnable {
     }
 
     protected void waitForPageLoaded() {
-        // final ExpectedCondition<Boolean> expectation = new ExpectedCondition<Boolean>() {
-        // @Override
-        // public Boolean apply(final WebDriver driver) {
-        // return ((JavascriptExecutor) driver).executeScript("return document.readyState").equals("complete");
-        // }
-        // };
-        //
-        // new WebDriverWait(this.driver, 30).until(expectation);
-
         this.driver.manage().timeouts().pageLoadTimeout(30, TimeUnit.SECONDS);
 
         if (this.driver.getTitle().contains("404")) {

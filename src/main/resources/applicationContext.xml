@@ -46,11 +46,9 @@
 	<bean id="zongobukkLogoutAction" class="gaspar.zongobukker.web.ZongobukkLogoutAction"
 		scope="prototype" p:logoutPage="${gaspar.zongobukker.web.url.logout}" />
 
-	<bean id="daySelectAction" class="gaspar.zongobukker.web.ZongobukkSelectDayAction"
-		scope="prototype" p:daypickerLink="${gaspar.zongobukker.web.url.daypicker}" />
-
 	<bean id="timeslotSearchAction" class="gaspar.zongobukker.web.ZongobukkSearchAction"
-		scope="prototype" p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}" />
+		scope="prototype" p:daypickerLink="${gaspar.zongobukker.web.url.daypicker}"
+		p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}" />
 
 	<bean id="zongobukkBookAction" class="gaspar.zongobukker.web.ZongobukkBookAction"
 		scope="prototype" p:alreadyBookedMessage="${gaspar.zongobukker.message.alreadyBooked}"

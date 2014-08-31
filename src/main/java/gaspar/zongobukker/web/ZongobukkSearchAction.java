@@ -28,11 +28,15 @@ import com.google.common.collect.Range;
 @Slf4j
 public class ZongobukkSearchAction extends WebAction {
 
+    private static final DateFormat DAY_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
     private static final DateFormat TIMESLOT_FORMAT = new SimpleDateFormat("hh:mm");
 
     private final ZongobukkUserContext zongobukkUserContext;
 
     private int bookPeriodInDay;
+
+    private String daypickerLink;
 
     private ZongobukkSearchAction(final ZongobukkConfiguration configuration) {
         super(configuration.getDriver());
@@ -52,7 +56,7 @@ public class ZongobukkSearchAction extends WebAction {
     }
 
     private void searchByDay(final Calendar searchDay) {
-        new ZongobukkSelectDayAction(this.driver, searchDay).run();
+        selectDay(searchDay);
 
         final Collection<WebElement> zongoRooms = searchRooms();
 
@@ -66,6 +70,20 @@ public class ZongobukkSearchAction extends WebAction {
             } catch (final RuntimeException e) {
                 log.error("unhandled exception", e);
             }
+        }
+    }
+
+    private void selectDay(final Calendar searchDay) {
+        final String actualDay = DAY_FORMAT.format(searchDay.getTime());
+
+        log.info("Selecting day: {}", actualDay);
+
+        this.driver.get(this.daypickerLink + actualDay);
+
+        final WebElement dayWebElement = this.driver.findElement(By.xpath("//*[@id='main']/table/tbody/tr/td[1]/div[4]/font"));
+
+        if (dayWebElement == null || !actualDay.equals(dayWebElement.getText())) {
+            throw new ZongobukkException("Not able to book for day: " + actualDay);
         }
     }
 
@@ -185,6 +203,10 @@ public class ZongobukkSearchAction extends WebAction {
 
     public void setBookPeriodInDay(final int bookPeriodInDay) {
         this.bookPeriodInDay = bookPeriodInDay;
+    }
+
+    public void setDaypickerLink(final String daypickerLink) {
+        this.daypickerLink = daypickerLink;
     }
 
 }

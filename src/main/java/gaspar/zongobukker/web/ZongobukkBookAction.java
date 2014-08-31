@@ -24,8 +24,6 @@ public class ZongobukkBookAction extends WebAction {
     @Override
     public void run() {
         for (final Timeslot timeslot : this.zongobukkUserContext.getRequiredTimeslots()) {
-            new ZongobukkSelectDayAction(this.driver, timeslot.getStartDate()).run();
-
             final String actionLink = timeslot.getActionLink();
 
             if (!timeslot.getStatus().equals(Timeslot.Status.SKIP) && actionLink != null) {

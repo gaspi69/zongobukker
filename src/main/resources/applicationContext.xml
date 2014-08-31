@@ -11,7 +11,7 @@
 
 	<bean
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
-		p:location="classpath:application.properties" />
+		p:location="classpath:application.properties,classpath:environment.properties" />
 
 	<!-- Google AUTH -->
 

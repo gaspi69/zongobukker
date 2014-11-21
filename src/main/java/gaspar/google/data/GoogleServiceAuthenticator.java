@@ -1,11 +1,13 @@
 package gaspar.google.data;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import com.google.gdata.client.spreadsheet.SpreadsheetService;
 import com.google.gdata.util.AuthenticationException;
 
 @Data
+@Slf4j
 public class GoogleServiceAuthenticator {
 
     private SpreadsheetService spreadsheetService;
@@ -16,6 +18,8 @@ public class GoogleServiceAuthenticator {
     public void init() throws AuthenticationException {
         this.spreadsheetService = new SpreadsheetService(getClass().toString());
         this.spreadsheetService.setProtocolVersion(SpreadsheetService.Versions.V3);
+
+        log.trace("Initializing google auth with user/pass: {}/{}", this.username, this.password);
 
         this.spreadsheetService.setUserCredentials(this.username, this.password);
     }

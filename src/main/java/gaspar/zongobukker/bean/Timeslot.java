@@ -11,12 +11,12 @@ public class Timeslot implements Cloneable {
 
     private Calendar startDate;
 
-    private Status status = Status.FREE;
+    private Status status = Status.UNKNOWN;
 
-    private String actionLink;
+    // private String actionLink;
 
     public enum Status {
-        FREE, MYBOOKING, SKIP;
+        FREE, MYBOOKING, UNKNOWN;
     }
 
     @Override
@@ -28,15 +28,14 @@ public class Timeslot implements Cloneable {
 
         cloneTimeslot.setStatus(this.status);
 
-        cloneTimeslot.actionLink = this.actionLink;
+        // cloneTimeslot.actionLink = this.actionLink;
 
         return cloneTimeslot;
     }
 
     @Override
     public String toString() {
-        return "Timeslot [startDate=" + DateFormatUtils.ISO_DATETIME_FORMAT.format(this.startDate) + ", status=" + this.status + ", actionLink="
-                + this.actionLink + "]";
+        return "Timeslot [startDate=" + DateFormatUtils.ISO_DATETIME_FORMAT.format(this.startDate) + ", status=" + this.status + "]";
     }
 
 }

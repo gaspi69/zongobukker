@@ -12,6 +12,7 @@ import gaspar.zongobukker.util.DateUtil;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashSet;
@@ -37,6 +38,8 @@ public class ZongobukkSearchAction extends WebAction {
     private int bookPeriodInDay;
 
     private String daypickerLink;
+
+    private int[] validRoomNumbers;
 
     private ZongobukkSearchAction(final ZongobukkConfiguration configuration) {
         super(configuration.getDriver());
@@ -88,23 +91,28 @@ public class ZongobukkSearchAction extends WebAction {
     }
 
     private void searchTimeslotsByDayAndRoom(final Calendar searchDay, final WebElement tableRoom) {
-        final String roomString = tableRoom.findElement(By.tagName("strong")).getText();
+        final Integer roomNumber = Integer.valueOf(tableRoom.findElement(By.tagName("strong")).getText());
 
-        log.debug("Room found: {}", roomString);
+        log.debug("Room found: {}", roomNumber);
 
-        Room room = findRoomByNumber(Integer.valueOf(roomString));
+        if (!Arrays.asList(this.validRoomNumbers).contains(roomNumber)) {
+            log.debug("Parsing of invalid roome skipped: {}", roomNumber);
+            return;
+        } else {
+            Room room = findRoomByNumber(roomNumber);
 
-        if (room == null) {
-            room = new Room();
-            room.setNumber(Integer.valueOf(roomString));
+            if (room == null) {
+                room = new Room();
+                room.setNumber(roomNumber);
 
-            room.setRoomType(findRoomType(tableRoom));
+                room.setRoomType(findRoomType(tableRoom));
 
-            this.zongobukkUserContext.getRooms().add(room);
+                this.zongobukkUserContext.getRooms().add(room);
+            }
+
+            parseBookingLinks(searchDay, tableRoom, room, Timeslot.Status.FREE);
+            parseBookingLinks(searchDay, tableRoom, room, Timeslot.Status.MYBOOKING);
         }
-
-        parseBookingLinks(searchDay, tableRoom, room, Timeslot.Status.FREE);
-        parseBookingLinks(searchDay, tableRoom, room, Timeslot.Status.MYBOOKING);
     }
 
     private void parseBookingLinks(final Calendar searchDay, final WebElement tableRoom, final Room room, final Timeslot.Status status) {
@@ -158,10 +166,7 @@ public class ZongobukkSearchAction extends WebAction {
     private Collection<Calendar> searchOnDays() {
         final Collection<Calendar> searchOnDays = new HashSet<Calendar>();
 
-        final Calendar upperLimit = Calendar.getInstance();
-        upperLimit.add(Calendar.DAY_OF_MONTH, this.bookPeriodInDay);
-
-        final Range<Calendar> searchDayRange = Range.closedOpen(DateUtil.truncateCalendar(Calendar.getInstance()), DateUtil.truncateCalendar(upperLimit));
+        final Range<Calendar> searchDayRange = getSearchRange();
 
         for (final Timeslot timeslot : this.zongobukkUserContext.getRequiredTimeslots()) {
             if (searchDayRange.contains(timeslot.getStartDate())) {
@@ -170,6 +175,13 @@ public class ZongobukkSearchAction extends WebAction {
         }
 
         return searchOnDays;
+    }
+
+    private Range<Calendar> getSearchRange() {
+        final Calendar upperLimit = Calendar.getInstance();
+        upperLimit.add(Calendar.DAY_OF_MONTH, this.bookPeriodInDay);
+
+        return Range.closedOpen(DateUtil.truncateCalendar(Calendar.getInstance()), DateUtil.truncateCalendar(upperLimit));
     }
 
     private Room findRoomByNumber(final int roomNumber) {
@@ -184,9 +196,8 @@ public class ZongobukkSearchAction extends WebAction {
 
     private Timeslot parseTimeslot(final Calendar searchDay, final WebElement freeLink) throws ParseException {
         final String slotBookDate = freeLink.getText();
-        final String slotBookLink = freeLink.getAttribute("href");
 
-        log.trace("Free booking link found on {} with link: {}", slotBookDate, slotBookLink);
+        log.trace("Free booking found on {}", slotBookDate);
 
         final Timeslot timeslot = new Timeslot();
 
@@ -196,7 +207,6 @@ public class ZongobukkSearchAction extends WebAction {
         DateUtil.setDatePartOfCalendar(searchDay, timeSlotCalendar);
 
         timeslot.setStartDate(timeSlotCalendar);
-        timeslot.setActionLink(slotBookLink);
 
         return timeslot;
     }

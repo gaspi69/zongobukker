@@ -1,5 +1,6 @@
 package gaspar.zongobukker.web;
 
+import gaspar.web.UrlBuilder;
 import gaspar.web.WebAction;
 import gaspar.zongobukker.ZongobukkConfiguration;
 import gaspar.zongobukker.bean.Timeslot;
@@ -13,6 +14,11 @@ public class ZongobukkBookAction extends WebAction {
 
     private final ZongobukkUserContext zongobukkUserContext;
 
+    private UrlBuilder urlBuilder;
+
+    private String subscribeUrlPattern;
+    private String unsubscribeUrlPattern;
+
     private String succesfullMessage;
     private String alreadyBookedMessage;
 
@@ -23,11 +29,15 @@ public class ZongobukkBookAction extends WebAction {
 
     @Override
     public void run() {
-        for (final Timeslot timeslot : this.zongobukkUserContext.getRequiredTimeslots()) {
-            final String actionLink = timeslot.getActionLink();
 
-            if (!timeslot.getStatus().equals(Timeslot.Status.SKIP) && actionLink != null) {
+        for (final Timeslot timeslot : this.zongobukkUserContext.getRequiredTimeslots()) {
+            if (timeslot.getStatus().equals(Timeslot.Status.MYBOOKING)) {
                 log.info("Booking slot: {}", timeslot);
+
+                final String actionLink = null; // this.urlBuilder.buildUrl(this.subscribeUrlPattern,
+                                                // timeslot.getStartDate());
+
+                log.debug("Booking {} on URL {}", timeslot, actionLink);
 
                 this.driver.get(actionLink);
 
@@ -46,7 +56,6 @@ public class ZongobukkBookAction extends WebAction {
                         log.info("Timeslot successfully booked: {}", timeslot);
                     }
 
-                    timeslot.setStatus(Timeslot.Status.MYBOOKING);
                     alertBox.accept();
                 } else {
                     throw new IllegalStateException("Alertbox not shown");

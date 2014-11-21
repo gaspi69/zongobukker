@@ -1,7 +1,8 @@
 package gaspar.zongobukker;
 
 import gaspar.google.data.GoogleTable;
-import gaspar.web.FirefoxWebInstance;
+import gaspar.web.BrowserInstance;
+import gaspar.web.HtmlUnitWebInstance;
 import gaspar.zongobukker.user.TableInitializationUserContext;
 
 import java.io.IOException;
@@ -28,9 +29,9 @@ public class ZongobukkManager implements ApplicationContextAware {
             try {
                 final GoogleTable userConfigTable = initUserConfigTable(userString);
 
-                final FirefoxWebInstance firefoxWebInstance = this.applicationContext.getBean(FirefoxWebInstance.class);
+                final BrowserInstance browserInstance = this.applicationContext.getBean(HtmlUnitWebInstance.class);
 
-                final ZongobukkConfiguration configuration = initConfiguration(userConfigTable, firefoxWebInstance);
+                final ZongobukkConfiguration configuration = initConfiguration(userConfigTable, browserInstance);
 
                 this.zongobukkFacade.run(configuration);
             } catch (final Exception e) {
@@ -39,12 +40,12 @@ public class ZongobukkManager implements ApplicationContextAware {
         }
     }
 
-    private ZongobukkConfiguration initConfiguration(final GoogleTable userConfigTable, final FirefoxWebInstance firefoxWebInstance) {
+    private ZongobukkConfiguration initConfiguration(final GoogleTable userConfigTable, final BrowserInstance browserInstance) {
         final ZongobukkConfiguration configuration = new ZongobukkConfiguration();
         final TableInitializationUserContext userContext = (TableInitializationUserContext) this.applicationContext.getBean("userContext", userConfigTable);
         userContext.init();
         configuration.setZongobukkUserContext(userContext);
-        configuration.setDriver(firefoxWebInstance.getDriver());
+        configuration.setDriver(browserInstance.getDriver());
         return configuration;
     }
 

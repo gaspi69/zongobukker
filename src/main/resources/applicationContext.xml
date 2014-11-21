@@ -43,7 +43,16 @@
 
 	<!-- WEB stuff -->
 
-	<bean id="firefoxWebInstance" class="gaspar.web.FirefoxWebInstance">
+	<bean id="firefoxWebInstance" class="gaspar.web.FirefoxWebInstance"
+		scope="prototype">
+		<constructor-arg value="${gaspar.zongobukker.selenium.server.url}" />
+	</bean>
+
+	<bean id="ieWebInstance" class="gaspar.web.IeWebInstance" scope="prototype">
+		<constructor-arg value="${gaspar.zongobukker.selenium.server.url}" />
+	</bean>
+
+	<bean id="htmlUnitWebInstance" class="gaspar.web.HtmlUnitWebInstance" scope="prototype">
 		<constructor-arg value="${gaspar.zongobukker.selenium.server.url}" />
 	</bean>
 
@@ -70,15 +79,18 @@
 		scope="prototype" p:timeslotFormat="${gaspar.zongobukker.config.format.timeslot}" />
 
 	<bean id="pianorRoomPredicate" class="gaspar.zongobukker.bean.PianorRoomPredicate"
-		scope="prototype" p:pianoRooms="${gaspar.zongobukker.room.priority}" />
+		p:pianoRooms="${gaspar.zongobukker.room.priority}" />
 
 	<bean id="pianoRoomPriorityComparator" class="gaspar.zongobukker.bean.PianoRoomPriorityComparator"
-		scope="prototype" p:roomPriority="${gaspar.zongobukker.room.priority}" />
+		p:roomPriority="${gaspar.zongobukker.room.priority}" />
+
+	<bean id="timeslotStartComparator" class="gaspar.zongobukker.bean.TimeslotStartComparator" />
 
 	<bean id="zongobukkFinder" class="gaspar.zongobukker.core.PianoRoomFinder"
 		p:maxRetryCount="1" p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}"
 		p:pianorRoomPredicate-ref="pianorRoomPredicate"
-		p:pianoRoomPriorityComparator-ref="pianoRoomPriorityComparator" />
+		p:pianoRoomPriorityComparator-ref="pianoRoomPriorityComparator"
+		p:timeslotStartComparator-ref="timeslotStartComparator" />
 
 	<bean id="zongobukkFacade" class="gaspar.zongobukker.SimpleZongobukkFacade"
 		p:zongobukkFinder-ref="zongobukkFinder" />

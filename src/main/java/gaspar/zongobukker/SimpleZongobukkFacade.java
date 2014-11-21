@@ -39,7 +39,7 @@ public class SimpleZongobukkFacade implements WebManipulatorFacade<ZongobukkConf
         for (final Timeslot timeslot : configuration.getZongobukkUserContext().getRequiredTimeslots()) {
             if (Timeslot.Status.MYBOOKING.equals(timeslot.getStatus())) {
                 log.info("Booking SUCCESSFULL: {}", timeslot);
-            } else if (Timeslot.Status.SKIP.equals(timeslot.getStatus())) {
+            } else if (Timeslot.Status.UNKNOWN.equals(timeslot.getStatus())) {
                 log.info("Booking SKIPPED: {}", timeslot);
             } else if (Timeslot.Status.FREE.equals(timeslot.getStatus())) {
                 log.error("Booking still FREE: {}", timeslot);

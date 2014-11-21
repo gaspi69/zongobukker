@@ -28,7 +28,7 @@ public class PianoRoomFinder implements ZongobukkFinder {
 
     private PianorRoomPredicate pianorRoomPredicate;
     private PianoRoomPriorityComparator pianoRoomPriorityComparator;
-    private TimeslotStartComparator timeslotStartComparator = new TimeslotStartComparator();
+    private TimeslotStartComparator timeslotStartComparator;
 
     private int maxRetryCount;
 
@@ -42,15 +42,15 @@ public class PianoRoomFinder implements ZongobukkFinder {
         final List<Timeslot> timeslotsToBook = new ArrayList<Timeslot>(zongobukkUserContext.getRequiredTimeslots());
         Collections.sort(timeslotsToBook, this.timeslotStartComparator);
 
-        removeInvalidTimeSlots(availableRooms, timeslotsToBook);
+        filterInvalidTimeSlots(availableRooms, timeslotsToBook);
 
         int count = 0;
         while (hasEmptySlot(timeslotsToBook) && count < this.maxRetryCount) {
             for (int i = 0; i < timeslotsToBook.size(); i++) {
-                final List<Timeslot> workTimeslots = timeslotsToBook.subList(i, timeslotsToBook.size());
+                final List<Timeslot> workTimeslotsToBook = timeslotsToBook.subList(i, timeslotsToBook.size());
 
                 for (final Room room : availableRooms) {
-                    matchAndSetTimeslots(room, workTimeslots);
+                    matchAndSetTimeslots(room, workTimeslotsToBook);
                 }
             }
 
@@ -62,36 +62,40 @@ public class PianoRoomFinder implements ZongobukkFinder {
         }
     }
 
-    private void removeInvalidTimeSlots(final List<Room> availableRooms, final List<Timeslot> timeslotsToBook) {
-
-        final Calendar upperLimit = Calendar.getInstance();
-        upperLimit.add(Calendar.DAY_OF_MONTH, this.bookPeriodInDay);
-
-        final Range<Calendar> searchDayRange = Range.closedOpen(DateUtil.truncateCalendar(Calendar.getInstance()), DateUtil.truncateCalendar(upperLimit));
+    private void filterInvalidTimeSlots(final List<Room> availableRooms, final List<Timeslot> timeslotsToBook) {
+        final Range<Calendar> searchDayRange = getSearchRange();
 
         for (final Iterator<Timeslot> iterator = timeslotsToBook.iterator(); iterator.hasNext();) {
-            final Timeslot timeslot = iterator.next();
+            final Timeslot timeslotToBook = iterator.next();
 
-            if (!searchDayRange.contains(timeslot.getStartDate())) {
-                timeslot.setStatus(Timeslot.Status.SKIP);
-                iterator.remove();
+            if (!searchDayRange.contains(timeslotToBook.getStartDate())) {
+                log.warn("Timeslot out of booking period: {}", timeslotToBook);
+
+                timeslotToBook.setStatus(Timeslot.Status.FREE);
             } else {
                 for (final Room room : availableRooms) {
-                    final Timeslot alreadyBooked = findTimeslotByStart(room.getTimeslots(), timeslot.getStartDate());
-                    if (alreadyBooked != null && Timeslot.Status.MYBOOKING.equals(alreadyBooked.getStatus())) {
-                        log.warn("Timeslot already booked: {}", alreadyBooked);
+                    final Timeslot alreadyHaveTimeslot = findTimeslotByStart(room.getTimeslots(), timeslotToBook.getStartDate());
+                    if (alreadyHaveTimeslot != null && Timeslot.Status.MYBOOKING.equals(alreadyHaveTimeslot.getStatus())) {
+                        log.warn("Timeslot already booked: {}", alreadyHaveTimeslot);
 
-                        timeslot.setStatus(Timeslot.Status.MYBOOKING);
-                        iterator.remove();
+                        timeslotToBook.setStatus(Timeslot.Status.FREE);
                     }
                 }
             }
         }
     }
 
+    private Range<Calendar> getSearchRange() {
+        final Calendar upperLimit = Calendar.getInstance();
+        upperLimit.add(Calendar.DAY_OF_MONTH, this.bookPeriodInDay);
+
+        final Range<Calendar> searchDayRange = Range.closedOpen(DateUtil.truncateCalendar(Calendar.getInstance()), DateUtil.truncateCalendar(upperLimit));
+        return searchDayRange;
+    }
+
     private boolean hasEmptySlot(final List<Timeslot> timeslotsToBook) {
         for (final Timeslot timeslot : timeslotsToBook) {
-            if (timeslot.getActionLink() == null) {
+            if (Timeslot.Status.UNKNOWN.equals(timeslot.getStatus())) {
                 return true;
             }
         }
@@ -99,11 +103,11 @@ public class PianoRoomFinder implements ZongobukkFinder {
         return false;
     }
 
-    private void matchAndSetTimeslots(final Room room, final List<Timeslot> workTimeslots) {
-        for (final Timeslot timeslot : workTimeslots) {
-            final Timeslot availableTimeslot = findTimeslotByStart(room.getTimeslots(), timeslot.getStartDate());
-            if (availableTimeslot != null) {
-                timeslot.setActionLink(availableTimeslot.getActionLink());
+    private void matchAndSetTimeslots(final Room room, final List<Timeslot> workTimeslotsToBook) {
+        for (final Timeslot workTimeslotToBook : workTimeslotsToBook) {
+            final Timeslot availableTimeslot = findTimeslotByStart(room.getTimeslots(), workTimeslotToBook.getStartDate());
+            if (Timeslot.Status.FREE.equals(availableTimeslot.getStatus())) {
+                workTimeslotToBook.setStatus(Timeslot.Status.MYBOOKING);
             }
         }
     }

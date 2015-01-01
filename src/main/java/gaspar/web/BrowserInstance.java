@@ -19,6 +19,8 @@ public abstract class BrowserInstance implements DisposableBean {
         this.driver = initWebDriver(seleniumServerUrl);
 
         this.driver.manage().timeouts().implicitlyWait(1, TimeUnit.SECONDS);
+        this.driver.manage().timeouts().pageLoadTimeout(30, TimeUnit.SECONDS);
+        this.driver.manage().timeouts().setScriptTimeout(10, TimeUnit.SECONDS);
     }
 
     protected abstract WebDriver initWebDriver(final URL seleniumServerUrl);

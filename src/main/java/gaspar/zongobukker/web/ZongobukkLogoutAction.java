@@ -1,7 +1,7 @@
 package gaspar.zongobukker.web;
 
 import gaspar.web.WebAction;
-import gaspar.zongobukker.ZongobukkConfiguration;
+import gaspar.zongobukker.ZongobukkSession;
 import gaspar.zongobukker.bean.ZongobukkException;
 
 import org.openqa.selenium.By;
@@ -10,15 +10,13 @@ public class ZongobukkLogoutAction extends WebAction {
 
     private String logoutPage;
 
-    public ZongobukkLogoutAction(final ZongobukkConfiguration configuration) {
-        super(configuration.getDriver());
+    public ZongobukkLogoutAction(final ZongobukkSession session) {
+        super(session.getDriver());
     }
 
     @Override
-    public void run() {
-        this.driver.get(this.logoutPage);
-
-        waitForPageLoaded();
+    protected void innerRun() {
+        openPage(this.logoutPage);
 
         if (!isElementPresent(By.id("UserName")) || !isElementPresent(By.id("Password"))) {
             throw new ZongobukkException("not logged out");

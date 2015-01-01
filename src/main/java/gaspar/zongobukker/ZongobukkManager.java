@@ -3,7 +3,8 @@ package gaspar.zongobukker;
 import gaspar.google.data.GoogleTable;
 import gaspar.web.BrowserInstance;
 import gaspar.web.HtmlUnitWebInstance;
-import gaspar.zongobukker.user.TableInitializationUserContext;
+import gaspar.zongobukker.bean.ZongobukkContext;
+import gaspar.zongobukker.user.UserConfiguration;
 
 import java.io.IOException;
 
@@ -25,28 +26,34 @@ public class ZongobukkManager implements ApplicationContextAware {
     private SimpleZongobukkFacade zongobukkFacade;
 
     public void makeBookings() {
-        for (final String userString : this.userIndexTable.getCells(Range.singleton(1), Range.atLeast(1))) {
+        for (final String userString : this.userIndexTable.getCellsText(Range.singleton(1), Range.atLeast(1))) {
             try {
                 final GoogleTable userConfigTable = initUserConfigTable(userString);
 
                 final BrowserInstance browserInstance = this.applicationContext.getBean(HtmlUnitWebInstance.class);
 
-                final ZongobukkConfiguration configuration = initConfiguration(userConfigTable, browserInstance);
+                final ZongobukkSession session = initSession(userConfigTable, browserInstance);
 
-                this.zongobukkFacade.run(configuration);
+                this.zongobukkFacade.run(session);
+
             } catch (final Exception e) {
                 log.error("Booking failed for: " + userString, e);
             }
         }
     }
 
-    private ZongobukkConfiguration initConfiguration(final GoogleTable userConfigTable, final BrowserInstance browserInstance) {
-        final ZongobukkConfiguration configuration = new ZongobukkConfiguration();
-        final TableInitializationUserContext userContext = (TableInitializationUserContext) this.applicationContext.getBean("userContext", userConfigTable);
-        userContext.init();
-        configuration.setZongobukkUserContext(userContext);
-        configuration.setDriver(browserInstance.getDriver());
-        return configuration;
+    private ZongobukkSession initSession(final GoogleTable userConfigTable, final BrowserInstance browserInstance) {
+        final ZongobukkSession session = new ZongobukkSession();
+
+        final UserConfiguration userConfiguration = (UserConfiguration) this.applicationContext.getBean("userConfiguration", userConfigTable);
+        session.setUserConfiguration(userConfiguration);
+
+        final ZongobukkContext userContext = new ZongobukkContext();
+        userContext.getRequiredTimeslots().addAll(session.getUserConfiguration().loadTimeslots());
+
+        session.setZongobukkContext(userContext);
+        session.setDriver(browserInstance.getDriver());
+        return session;
     }
 
     private GoogleTable initUserConfigTable(final String userString) throws IOException, ServiceException {

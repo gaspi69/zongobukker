@@ -2,12 +2,12 @@ package gaspar.zongobukker.bean;
 
 import java.util.Comparator;
 
-public class PianoRoomPriorityComparator implements Comparator<Room> {
+public class PianoRoomPriorityComparator implements Comparator<Timeslot> {
 
     private int[] roomPriority;
 
     @Override
-    public int compare(final Room o1, final Room o2) {
+    public int compare(final Timeslot o1, final Timeslot o2) {
         if (o1 == null && o2 == null) {
             return 0;
         }
@@ -20,7 +20,7 @@ public class PianoRoomPriorityComparator implements Comparator<Room> {
             return 1;
         }
 
-        return roomPrioIndexOf(o1.getNumber()) - roomPrioIndexOf(o2.getNumber());
+        return roomPrioIndexOf(o1.getRoomNumber()) - roomPrioIndexOf(o2.getRoomNumber());
     }
 
     private int roomPrioIndexOf(final int elem) {

@@ -1,14 +1,15 @@
 package gaspar.zongobukker.web;
 
+import gaspar.web.UrlBuilder;
 import gaspar.web.WebAction;
-import gaspar.zongobukker.ZongobukkConfiguration;
-import gaspar.zongobukker.bean.Room;
-import gaspar.zongobukker.bean.RoomType;
+import gaspar.zongobukker.ZongobukkSession;
 import gaspar.zongobukker.bean.Timeslot;
+import gaspar.zongobukker.bean.Timeslot.Status;
+import gaspar.zongobukker.bean.ZongobukkContext;
 import gaspar.zongobukker.bean.ZongobukkException;
-import gaspar.zongobukker.user.ZongobukkUserContext;
 import gaspar.zongobukker.util.DateUtil;
 
+import java.net.MalformedURLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -21,10 +22,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
 import com.google.common.collect.Range;
+import com.google.common.primitives.Ints;
 
 @Slf4j
 public class ZongobukkSearchAction extends WebAction {
@@ -33,32 +36,35 @@ public class ZongobukkSearchAction extends WebAction {
 
     private static final DateFormat TIMESLOT_FORMAT = new SimpleDateFormat("hh:mm");
 
-    private final ZongobukkUserContext zongobukkUserContext;
+    private final ZongobukkContext zongobukkContext;
 
     private int bookPeriodInDay;
 
     private String daypickerLink;
 
+    private UrlBuilder urlBuilder;
+
     private int[] validRoomNumbers;
 
-    private ZongobukkSearchAction(final ZongobukkConfiguration configuration) {
-        super(configuration.getDriver());
-        this.zongobukkUserContext = configuration.getZongobukkUserContext();
+    private ZongobukkSearchAction(final ZongobukkSession session) {
+        super(session.getDriver());
+        this.zongobukkContext = session.getZongobukkContext();
     }
 
     @Override
-    public void run() {
+    protected void innerRun() {
         for (final Calendar searchDay : searchOnDays()) {
             try {
                 searchByDay(searchDay);
             } catch (final RuntimeException e) {
                 log.error("unhandled exception, when searching for " + ToStringBuilder.reflectionToString(searchDay, ToStringStyle.SIMPLE_STYLE), e);
+            } catch (final MalformedURLException e) {
+                log.error("invalid URL", e);
             }
         }
-
     }
 
-    private void searchByDay(final Calendar searchDay) {
+    private void searchByDay(final Calendar searchDay) throws MalformedURLException {
         selectDay(searchDay);
 
         final Collection<WebElement> zongoRooms = searchRooms();
@@ -76,12 +82,12 @@ public class ZongobukkSearchAction extends WebAction {
         }
     }
 
-    private void selectDay(final Calendar searchDay) {
+    private void selectDay(final Calendar searchDay) throws MalformedURLException {
         final String actualDay = DAY_FORMAT.format(searchDay.getTime());
 
         log.info("Selecting day: {}", actualDay);
 
-        this.driver.get(this.daypickerLink + actualDay);
+        openPage(this.urlBuilder.buildUrl(this.daypickerLink, actualDay).toExternalForm());
 
         final WebElement dayWebElement = this.driver.findElement(By.xpath("//*[@id='main']/table/tbody/tr/td[1]/div[4]/font"));
 
@@ -90,62 +96,49 @@ public class ZongobukkSearchAction extends WebAction {
         }
     }
 
-    private void searchTimeslotsByDayAndRoom(final Calendar searchDay, final WebElement tableRoom) {
-        final Integer roomNumber = Integer.valueOf(tableRoom.findElement(By.tagName("strong")).getText());
+    private void searchTimeslotsByDayAndRoom(final Calendar searchDay, final WebElement tableRoomElement) {
+        final Integer roomNumber = Integer.valueOf(tableRoomElement.findElement(By.tagName("strong")).getText());
 
-        log.debug("Room found: {}", roomNumber);
+        log.trace("Room found: {}", roomNumber);
 
-        if (!Arrays.asList(this.validRoomNumbers).contains(roomNumber)) {
-            log.debug("Parsing of invalid roome skipped: {}", roomNumber);
+        if (!Ints.asList(this.validRoomNumbers).contains(roomNumber.intValue())) {
+            log.trace("Parsing of invalid room skipped: {}", roomNumber);
             return;
         } else {
-            Room room = findRoomByNumber(roomNumber);
+            log.debug("Parsing room {} on {}", roomNumber, DateFormatUtils.ISO_DATETIME_FORMAT.format(searchDay));
 
-            if (room == null) {
-                room = new Room();
-                room.setNumber(roomNumber);
-
-                room.setRoomType(findRoomType(tableRoom));
-
-                this.zongobukkUserContext.getRooms().add(room);
+            for (final Status status : Arrays.asList(Timeslot.Status.FREE, Timeslot.Status.BOOKED, Timeslot.Status.MYBOOKING,
+                    Timeslot.Status.TEMPORARILYBLOCKED)) {
+                parseTimeElements(searchDay, tableRoomElement, roomNumber, status);
             }
-
-            parseBookingLinks(searchDay, tableRoom, room, Timeslot.Status.FREE);
-            parseBookingLinks(searchDay, tableRoom, room, Timeslot.Status.MYBOOKING);
         }
     }
 
-    private void parseBookingLinks(final Calendar searchDay, final WebElement tableRoom, final Room room, final Timeslot.Status status) {
+    private void parseTimeElements(final Calendar searchDay, final WebElement tableRoom, final int roomNumber, final Timeslot.Status status) {
         for (final WebElement tdElement : tableRoom.findElements(By.className(status.toString().toLowerCase()))) {
-            final WebElement timeslotLink = tdElement.findElement(By.tagName("a"));
+            WebElement timeslotElement = tdElement;
+
+            if (status.equals(Timeslot.Status.MYBOOKING) || status.equals(Timeslot.Status.FREE)) {
+                final WebElement linkElement = tdElement.findElement(By.tagName("a"));
+                if (linkElement != null) {
+                    timeslotElement = linkElement;
+                }
+            }
 
             try {
-                final Timeslot timeslot = parseTimeslot(searchDay, timeslotLink);
+                final Timeslot timeslot = new Timeslot();
 
+                timeslot.setStartDate(parseTime(searchDay, timeslotElement));
                 timeslot.setStatus(status);
+                timeslot.setRoomNumber(roomNumber);
 
-                room.getTimeslots().add(timeslot);
+                this.zongobukkContext.getCurrentTimeslots().add(timeslot);
 
                 log.trace("Timeslot succesfully added: {}", timeslot);
             } catch (final ParseException e) {
-                log.error("Timeslot cannot parsed: {}", timeslotLink, e);
+                log.error("Timeslot cannot parsed: {}", timeslotElement, e);
             }
         }
-    }
-
-    private RoomType findRoomType(final WebElement tableRoom) {
-        RoomType roomType = null;
-
-        for (final WebElement imgElement : tableRoom.findElements(By.tagName("img"))) {
-            final String altAttribute = imgElement.getAttribute("alt");
-            if (altAttribute == "Zongora") {
-                roomType = RoomType.PIANO;
-            } else if (altAttribute == "Pianínó") {
-                roomType = RoomType.PIANINO;
-            }
-        }
-
-        return roomType;
     }
 
     private Collection<WebElement> searchRooms() {
@@ -168,7 +161,7 @@ public class ZongobukkSearchAction extends WebAction {
 
         final Range<Calendar> searchDayRange = getSearchRange();
 
-        for (final Timeslot timeslot : this.zongobukkUserContext.getRequiredTimeslots()) {
+        for (final Timeslot timeslot : this.zongobukkContext.getRequiredTimeslots()) {
             if (searchDayRange.contains(timeslot.getStartDate())) {
                 searchOnDays.add(DateUtil.truncateCalendar(timeslot.getStartDate()));
             }
@@ -184,31 +177,17 @@ public class ZongobukkSearchAction extends WebAction {
         return Range.closedOpen(DateUtil.truncateCalendar(Calendar.getInstance()), DateUtil.truncateCalendar(upperLimit));
     }
 
-    private Room findRoomByNumber(final int roomNumber) {
-        for (final Room currentRoom : this.zongobukkUserContext.getRooms()) {
-            if (roomNumber == currentRoom.getNumber()) {
-                return currentRoom;
-            }
-        }
-
-        return null;
-    }
-
-    private Timeslot parseTimeslot(final Calendar searchDay, final WebElement freeLink) throws ParseException {
+    private Calendar parseTime(final Calendar searchDay, final WebElement freeLink) throws ParseException {
         final String slotBookDate = freeLink.getText();
 
-        log.trace("Free booking found on {}", slotBookDate);
-
-        final Timeslot timeslot = new Timeslot();
+        log.trace("Timeslot found on {}", slotBookDate);
 
         final Calendar timeSlotCalendar = Calendar.getInstance();
         timeSlotCalendar.setTime(TIMESLOT_FORMAT.parse(slotBookDate));
 
         DateUtil.setDatePartOfCalendar(searchDay, timeSlotCalendar);
 
-        timeslot.setStartDate(timeSlotCalendar);
-
-        return timeslot;
+        return timeSlotCalendar;
     }
 
     public void setBookPeriodInDay(final int bookPeriodInDay) {
@@ -217,6 +196,14 @@ public class ZongobukkSearchAction extends WebAction {
 
     public void setDaypickerLink(final String daypickerLink) {
         this.daypickerLink = daypickerLink;
+    }
+
+    public void setValidRoomNumbers(final int[] validRoomNumbers) {
+        this.validRoomNumbers = validRoomNumbers;
+    }
+
+    public void setUrlBuilder(final UrlBuilder urlBuilder) {
+        this.urlBuilder = urlBuilder;
     }
 
 }

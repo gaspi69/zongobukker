@@ -1,15 +1,15 @@
 package gaspar.web;
 
-public interface WebManipulatorFacade<Configuration> {
+public interface WebManipulatorFacade<Session> {
 
-    void login(final Configuration configuration);
+    void login(final Session session);
 
-    void search(final Configuration configuration);
+    void search(final Session session);
 
-    void calculate(final Configuration configuration);
+    void calculate(final Session session);
 
-    void modify(final Configuration configuration);
+    void modify(final Session session);
 
-    void logout(final Configuration configuration);
+    void logout(final Session session);
 
 }

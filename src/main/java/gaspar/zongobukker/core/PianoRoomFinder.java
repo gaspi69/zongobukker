@@ -1,32 +1,34 @@
 package gaspar.zongobukker.core;
 
 import gaspar.zongobukker.bean.PianoRoomPriorityComparator;
-import gaspar.zongobukker.bean.PianorRoomPredicate;
-import gaspar.zongobukker.bean.Room;
 import gaspar.zongobukker.bean.Timeslot;
+import gaspar.zongobukker.bean.Timeslot.Status;
+import gaspar.zongobukker.bean.TimeslotStartAndStatusPredicate;
 import gaspar.zongobukker.bean.TimeslotStartComparator;
-import gaspar.zongobukker.bean.ZongobukkException;
-import gaspar.zongobukker.user.ZongobukkUserContext;
+import gaspar.zongobukker.bean.TimeslotStartPredicate;
+import gaspar.zongobukker.bean.TimeslotStatusPredicate;
+import gaspar.zongobukker.bean.ZongobukkContext;
 import gaspar.zongobukker.util.DateUtil;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
-import com.google.common.collect.Collections2;
+import org.apache.commons.lang3.time.DateFormatUtils;
+
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 
 @Data
 @Slf4j
-public class PianoRoomFinder implements ZongobukkFinder {
+public class PianoRoomFinder {
 
-    private PianorRoomPredicate pianorRoomPredicate;
     private PianoRoomPriorityComparator pianoRoomPriorityComparator;
     private TimeslotStartComparator timeslotStartComparator;
 
@@ -34,52 +36,48 @@ public class PianoRoomFinder implements ZongobukkFinder {
 
     private int bookPeriodInDay;
 
-    @Override
-    public void findTimeslots(final ZongobukkUserContext zongobukkUserContext) {
-        final List<Room> availableRooms = new ArrayList<Room>(Collections2.filter(zongobukkUserContext.getRooms(), this.pianorRoomPredicate));
-        Collections.sort(availableRooms, this.pianoRoomPriorityComparator);
+    public void findTimeslots(final ZongobukkContext zongobukkContext) {
+        final List<Timeslot> availableTimeslots = new ArrayList<Timeslot>(zongobukkContext.getCurrentTimeslots());
+        Collections.sort(availableTimeslots, this.pianoRoomPriorityComparator);
 
-        final List<Timeslot> timeslotsToBook = new ArrayList<Timeslot>(zongobukkUserContext.getRequiredTimeslots());
+        final List<Timeslot> timeslotsToBook = new ArrayList<Timeslot>(zongobukkContext.getRequiredTimeslots());
         Collections.sort(timeslotsToBook, this.timeslotStartComparator);
 
-        filterInvalidTimeSlots(availableRooms, timeslotsToBook);
+        filterInvalidTimeSlots(availableTimeslots, timeslotsToBook);
 
         int count = 0;
         while (hasEmptySlot(timeslotsToBook) && count < this.maxRetryCount) {
             for (int i = 0; i < timeslotsToBook.size(); i++) {
                 final List<Timeslot> workTimeslotsToBook = timeslotsToBook.subList(i, timeslotsToBook.size());
 
-                for (final Room room : availableRooms) {
-                    matchAndSetTimeslots(room, workTimeslotsToBook);
-                }
+                matchAndSetTimeslots(availableTimeslots, workTimeslotsToBook);
             }
 
             count++;
         }
 
-        if (hasEmptySlot(timeslotsToBook)) {
-            throw new ZongobukkException("Proper booking not found");
-        }
+        // if (hasEmptySlot(timeslotsToBook)) {
+        // throw new ZongobukkException("Proper booking not found");
+        // }
     }
 
-    private void filterInvalidTimeSlots(final List<Room> availableRooms, final List<Timeslot> timeslotsToBook) {
+    private void filterInvalidTimeSlots(final List<Timeslot> availableTimeslots, final List<Timeslot> timeslotsToBook) {
         final Range<Calendar> searchDayRange = getSearchRange();
 
-        for (final Iterator<Timeslot> iterator = timeslotsToBook.iterator(); iterator.hasNext();) {
-            final Timeslot timeslotToBook = iterator.next();
-
+        for (final Timeslot timeslotToBook : timeslotsToBook) {
             if (!searchDayRange.contains(timeslotToBook.getStartDate())) {
-                log.warn("Timeslot out of booking period: {}", timeslotToBook);
+                timeslotToBook.setStatus(Timeslot.Status.UNKNOWN);
+                timeslotToBook.getComment().append(" - Timeslot out of booking period");
 
-                timeslotToBook.setStatus(Timeslot.Status.FREE);
+                log.info("Timeslot out of booking period: {}", timeslotToBook);
             } else {
-                for (final Room room : availableRooms) {
-                    final Timeslot alreadyHaveTimeslot = findTimeslotByStart(room.getTimeslots(), timeslotToBook.getStartDate());
-                    if (alreadyHaveTimeslot != null && Timeslot.Status.MYBOOKING.equals(alreadyHaveTimeslot.getStatus())) {
-                        log.warn("Timeslot already booked: {}", alreadyHaveTimeslot);
+                final boolean alreadyBooked = Iterables.any(availableTimeslots,
+                        new TimeslotStartAndStatusPredicate(timeslotToBook.getStartDate(), Timeslot.Status.MYBOOKING));
+                if (alreadyBooked) {
+                    timeslotToBook.setStatus(Timeslot.Status.MYBOOKING);
+                    timeslotToBook.getComment().append(" - Timeslot already booked");
 
-                        timeslotToBook.setStatus(Timeslot.Status.FREE);
-                    }
+                    log.info("Timeslot already booked for this person: {}", timeslotToBook);
                 }
             }
         }
@@ -89,37 +87,31 @@ public class PianoRoomFinder implements ZongobukkFinder {
         final Calendar upperLimit = Calendar.getInstance();
         upperLimit.add(Calendar.DAY_OF_MONTH, this.bookPeriodInDay);
 
-        final Range<Calendar> searchDayRange = Range.closedOpen(DateUtil.truncateCalendar(Calendar.getInstance()), DateUtil.truncateCalendar(upperLimit));
-        return searchDayRange;
+        return Range.closedOpen(DateUtil.truncateCalendar(Calendar.getInstance()), DateUtil.truncateCalendar(upperLimit));
     }
 
-    private boolean hasEmptySlot(final List<Timeslot> timeslotsToBook) {
-        for (final Timeslot timeslot : timeslotsToBook) {
-            if (Timeslot.Status.UNKNOWN.equals(timeslot.getStatus())) {
-                return true;
-            }
-        }
-
-        return false;
+    private boolean hasEmptySlot(final Collection<Timeslot> timeslotsToBook) {
+        return Iterables.any(timeslotsToBook, new TimeslotStatusPredicate(Timeslot.Status.INITIALIZED));
     }
 
-    private void matchAndSetTimeslots(final Room room, final List<Timeslot> workTimeslotsToBook) {
+    private void matchAndSetTimeslots(final Collection<Timeslot> availableTimeslots, final Collection<Timeslot> workTimeslotsToBook) {
         for (final Timeslot workTimeslotToBook : workTimeslotsToBook) {
-            final Timeslot availableTimeslot = findTimeslotByStart(room.getTimeslots(), workTimeslotToBook.getStartDate());
-            if (Timeslot.Status.FREE.equals(availableTimeslot.getStatus())) {
-                workTimeslotToBook.setStatus(Timeslot.Status.MYBOOKING);
+            try {
+                final Timeslot availableTimeslot = Iterables.find(availableTimeslots, new TimeslotStartPredicate(workTimeslotToBook.getStartDate()));
+                if (Timeslot.Status.FREE.equals(availableTimeslot.getStatus())) {
+                    workTimeslotToBook.getComment().append(" - Booking started ...");
+                    workTimeslotToBook.setStatus(Timeslot.Status.TO_BE_BOOKED);
+                    workTimeslotToBook.setRoomNumber(availableTimeslot.getRoomNumber());
+                } else if (!Timeslot.Status.MYBOOKING.equals(availableTimeslot.getStatus())) {
+                    workTimeslotToBook.getComment().append(" - Free timeslot not found");
+                    workTimeslotToBook.setStatus(Timeslot.Status.UNKNOWN);
+                }
+            } catch (final NoSuchElementException e) {
+                workTimeslotToBook.setStatus(Status.UNKNOWN);
+                workTimeslotToBook.getComment().append(" - Timeslot booking not available");
+                log.error("could not found timeslot: {}", DateFormatUtils.ISO_DATETIME_FORMAT.format(workTimeslotToBook.getStartDate()));
             }
         }
-    }
-
-    private Timeslot findTimeslotByStart(final Collection<Timeslot> timeslots, final Calendar calendar) {
-        for (final Timeslot timeslot : timeslots) {
-            if (timeslot.getStartDate().equals(calendar)) {
-                return timeslot;
-            }
-        }
-
-        return null;
     }
 
 }

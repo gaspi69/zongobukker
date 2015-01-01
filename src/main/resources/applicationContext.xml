@@ -31,12 +31,12 @@
 	<!-- Data -->
 
 	<bean id="userIndexTable" class="gaspar.google.data.GoogleTable"
-		p:authenticator-ref="googleServiceAuthenticator" p:feedUrl="${gaspar.zongobukker.config.feedUrl}"
+		p:authenticator-ref="googleServiceAuthenticator" p:spreadsheetFeedUrl="${gaspar.zongobukker.config.feedUrl}"
 		p:spreadsheetTitle="${gaspar.zongobukker.config.index}"
 		p:worksheetTitle="${gaspar.zongobukker.config.index}" init-method="init" />
 
 	<bean id="googleTable" class="gaspar.google.data.GoogleTable"
-		scope="prototype" p:feedUrl="${gaspar.zongobukker.config.feedUrl}"
+		scope="prototype" p:spreadsheetFeedUrl="${gaspar.zongobukker.config.feedUrl}"
 		p:authenticator-ref="googleServiceAuthenticator" />
 
 	<!-- Data END -->
@@ -52,7 +52,13 @@
 		<constructor-arg value="${gaspar.zongobukker.selenium.server.url}" />
 	</bean>
 
-	<bean id="htmlUnitWebInstance" class="gaspar.web.HtmlUnitWebInstance" scope="prototype">
+	<bean id="chromeWebInstance" class="gaspar.web.ChromeWebInstance"
+		scope="prototype">
+		<constructor-arg value="${gaspar.zongobukker.selenium.server.url}" />
+	</bean>
+
+	<bean id="htmlUnitWebInstance" class="gaspar.web.HtmlUnitWebInstance"
+		scope="prototype">
 		<constructor-arg value="${gaspar.zongobukker.selenium.server.url}" />
 	</bean>
 
@@ -64,22 +70,23 @@
 
 	<bean id="timeslotSearchAction" class="gaspar.zongobukker.web.ZongobukkSearchAction"
 		scope="prototype" p:daypickerLink="${gaspar.zongobukker.web.url.daypicker}"
-		p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}" />
+		p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}"
+		p:validRoomNumbers="${gaspar.zongobukker.room.priority}"
+		p:urlBuilder-ref="urlBuilder" />
 
 	<bean id="zongobukkBookAction" class="gaspar.zongobukker.web.ZongobukkBookAction"
 		scope="prototype" p:alreadyBookedMessage="${gaspar.zongobukker.message.alreadyBooked}"
-		p:succesfullMessage="${gaspar.zongobukker.message.successful}" />
+		p:succesfullMessage="${gaspar.zongobukker.message.successful}"
+		p:subscribeUrlPattern="${gaspar.zongobukker.web.url.book.subscribe}"
+		p:urlBuilder-ref="urlBuilder" />
 
 	<!-- WEB stuff END -->
 
 
 	<!-- CORE -->
 
-	<bean id="userContext" class="gaspar.zongobukker.user.TableInitializationUserContext"
+	<bean id="userConfiguration" class="gaspar.zongobukker.user.UserConfiguration"
 		scope="prototype" p:timeslotFormat="${gaspar.zongobukker.config.format.timeslot}" />
-
-	<bean id="pianorRoomPredicate" class="gaspar.zongobukker.bean.PianorRoomPredicate"
-		p:pianoRooms="${gaspar.zongobukker.room.priority}" />
 
 	<bean id="pianoRoomPriorityComparator" class="gaspar.zongobukker.bean.PianoRoomPriorityComparator"
 		p:roomPriority="${gaspar.zongobukker.room.priority}" />
@@ -88,7 +95,6 @@
 
 	<bean id="zongobukkFinder" class="gaspar.zongobukker.core.PianoRoomFinder"
 		p:maxRetryCount="1" p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}"
-		p:pianorRoomPredicate-ref="pianorRoomPredicate"
 		p:pianoRoomPriorityComparator-ref="pianoRoomPriorityComparator"
 		p:timeslotStartComparator-ref="timeslotStartComparator" />
 
@@ -97,6 +103,8 @@
 
 	<bean class="gaspar.zongobukker.ZongobukkManager"
 		p:userIndexTable-ref="userIndexTable" p:zongobukkFacade-ref="zongobukkFacade" />
+
+	<bean id="urlBuilder" class="gaspar.web.UrlBuilder" />
 
 	<!-- CORE END -->
 

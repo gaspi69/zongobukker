@@ -1,8 +1,10 @@
 package gaspar.zongobukker.web;
 
+import gaspar.web.UrlBuilder;
 import gaspar.web.WebAction;
 import gaspar.zongobukker.bean.ZongobukkException;
 
+import java.net.MalformedURLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -20,7 +22,9 @@ public class ZongobukkSelectDayAction extends WebAction {
 
     private final Calendar searchDay;
 
-    private String daypickerLink;
+    private UrlBuilder urlBuilder;
+
+    private String daypickerUrlPatternLink;
 
     public ZongobukkSelectDayAction(final WebDriver driver, final Calendar searchDay) {
         super(driver);
@@ -28,22 +32,30 @@ public class ZongobukkSelectDayAction extends WebAction {
     }
 
     @Override
-    public void run() {
-        final String actualDay = DAY_FORMAT.format(this.searchDay.getTime());
+    protected void innerRun() {
+        try {
+            final String actualDay = DAY_FORMAT.format(this.searchDay.getTime());
 
-        log.info("Selecting day: {}", actualDay);
+            log.info("Selecting day: {}", actualDay);
 
-        this.driver.get(this.daypickerLink + actualDay);
+            openPage(this.urlBuilder.buildUrl(this.daypickerUrlPatternLink, actualDay).toExternalForm());
 
-        final WebElement dayWebElement = this.driver.findElement(By.xpath("//*[@id='main']/table/tbody/tr/td[1]/div[4]/font"));
+            final WebElement dayWebElement = this.driver.findElement(By.xpath("//*[@id='main']/table/tbody/tr/td[1]/div[4]/font"));
 
-        if (dayWebElement == null || !actualDay.equals(dayWebElement.getText())) {
-            throw new ZongobukkException("Not able to book for day: " + actualDay);
+            if (dayWebElement == null || !actualDay.equals(dayWebElement.getText())) {
+                throw new ZongobukkException("Not able to book for day: " + actualDay);
+            }
+        } catch (final MalformedURLException e) {
+            log.error("invalid URL", e);
         }
-
     }
 
     public void setDaypickerLink(final String daypickerLink) {
-        this.daypickerLink = daypickerLink;
+        this.daypickerUrlPatternLink = daypickerLink;
     }
+
+    public void setUrlBuilder(final UrlBuilder urlBuilder) {
+        this.urlBuilder = urlBuilder;
+    }
+
 }

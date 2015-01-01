@@ -13,10 +13,12 @@ public class Timeslot implements Cloneable {
 
     private Status status = Status.UNKNOWN;
 
-    // private String actionLink;
+    private int roomNumber;
+
+    private final StringBuffer comment = new StringBuffer();
 
     public enum Status {
-        FREE, MYBOOKING, UNKNOWN;
+        FREE, BOOKED, MYBOOKING, TEMPORARILYBLOCKED, INITIALIZED, TO_BE_BOOKED, UNKNOWN;
     }
 
     @Override
@@ -26,16 +28,17 @@ public class Timeslot implements Cloneable {
         cloneTimeslot.startDate = Calendar.getInstance();
         cloneTimeslot.startDate.setTimeInMillis(this.startDate.getTimeInMillis());
 
-        cloneTimeslot.setStatus(this.status);
+        cloneTimeslot.status = this.status;
 
-        // cloneTimeslot.actionLink = this.actionLink;
+        cloneTimeslot.roomNumber = this.roomNumber;
 
         return cloneTimeslot;
     }
 
     @Override
     public String toString() {
-        return "Timeslot [startDate=" + DateFormatUtils.ISO_DATETIME_FORMAT.format(this.startDate) + ", status=" + this.status + "]";
+        return "Timeslot [roomNumber=" + this.roomNumber + ", startDate=" + DateFormatUtils.ISO_DATETIME_FORMAT.format(this.startDate) + ", status="
+                + this.status + "]";
     }
 
 }

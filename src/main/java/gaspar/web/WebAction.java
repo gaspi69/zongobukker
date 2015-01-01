@@ -1,14 +1,16 @@
 package gaspar.web;
 
-import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+@Slf4j
 public abstract class WebAction implements Runnable {
 
     protected final WebDriver driver;
@@ -18,13 +20,8 @@ public abstract class WebAction implements Runnable {
         this.driver = driver;
     }
 
-    protected void waitForPageLoaded() {
-        this.driver.manage().timeouts().pageLoadTimeout(30, TimeUnit.SECONDS);
-
-        if (this.driver.getTitle().contains("404")) {
-            throw new IllegalStateException("page not available");
-        }
-
+    protected void openPage(final String link) {
+        this.driver.get(link);
     }
 
     protected void waitForElementToLoad(final WebElement element) {
@@ -40,5 +37,16 @@ public abstract class WebAction implements Runnable {
             return false;
         }
     }
+
+    @Override
+    public void run() {
+        try {
+            innerRun();
+        } catch (final WebDriverException e) {
+            log.error("unhandled web error", e);
+        }
+    }
+
+    protected abstract void innerRun();
 
 }

@@ -20,13 +20,10 @@ import java.util.HashSet;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
-import com.google.common.collect.Range;
 import com.google.common.primitives.Ints;
 
 @Slf4j
@@ -34,11 +31,11 @@ public class ZongobukkSearchAction extends WebAction {
 
     private static final DateFormat DAY_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
-    private static final DateFormat TIMESLOT_FORMAT = new SimpleDateFormat("hh:mm");
+    private static final DateFormat TIMESLOT_FORMAT = new SimpleDateFormat("HH:mm");
 
     private final ZongobukkContext zongobukkContext;
 
-    private int bookPeriodInDay;
+    // private int bookPeriodInDay;
 
     private String daypickerLink;
 
@@ -56,8 +53,10 @@ public class ZongobukkSearchAction extends WebAction {
         for (final Calendar searchDay : searchOnDays()) {
             try {
                 searchByDay(searchDay);
+            } catch (final ZongobukkException e) {
+                log.warn("search failed for day {}, detail: {}", DateFormatUtils.ISO_DATETIME_FORMAT.format(searchDay.getTime()), e);
             } catch (final RuntimeException e) {
-                log.error("unhandled exception, when searching for " + ToStringBuilder.reflectionToString(searchDay, ToStringStyle.SIMPLE_STYLE), e);
+                log.error("unhandled exception, when searching for " + DateFormatUtils.ISO_DATETIME_FORMAT.format(searchDay.getTime()), e);
             } catch (final MalformedURLException e) {
                 log.error("invalid URL", e);
             }
@@ -159,23 +158,24 @@ public class ZongobukkSearchAction extends WebAction {
     private Collection<Calendar> searchOnDays() {
         final Collection<Calendar> searchOnDays = new HashSet<Calendar>();
 
-        final Range<Calendar> searchDayRange = getSearchRange();
+        // final Range<Calendar> searchDayRange = getSearchRange();
 
         for (final Timeslot timeslot : this.zongobukkContext.getRequiredTimeslots()) {
-            if (searchDayRange.contains(timeslot.getStartDate())) {
-                searchOnDays.add(DateUtil.truncateCalendar(timeslot.getStartDate()));
-            }
+            // if (searchDayRange.contains(timeslot.getStartDate())) {
+            searchOnDays.add(DateUtil.truncateCalendar(timeslot.getStartDate()));
+            // }
         }
 
         return searchOnDays;
     }
 
-    private Range<Calendar> getSearchRange() {
-        final Calendar upperLimit = Calendar.getInstance();
-        upperLimit.add(Calendar.DAY_OF_MONTH, this.bookPeriodInDay);
-
-        return Range.closedOpen(DateUtil.truncateCalendar(Calendar.getInstance()), DateUtil.truncateCalendar(upperLimit));
-    }
+    // private Range<Calendar> getSearchRange() {
+    // final Calendar upperLimit = Calendar.getInstance();
+    // upperLimit.add(Calendar.DAY_OF_MONTH, this.bookPeriodInDay);
+    //
+    // return Range.closedOpen(DateUtil.truncateCalendar(Calendar.getInstance()),
+    // DateUtil.truncateCalendar(upperLimit));
+    // }
 
     private Calendar parseTime(final Calendar searchDay, final WebElement freeLink) throws ParseException {
         final String slotBookDate = freeLink.getText();
@@ -190,9 +190,9 @@ public class ZongobukkSearchAction extends WebAction {
         return timeSlotCalendar;
     }
 
-    public void setBookPeriodInDay(final int bookPeriodInDay) {
-        this.bookPeriodInDay = bookPeriodInDay;
-    }
+    // public void setBookPeriodInDay(final int bookPeriodInDay) {
+    // this.bookPeriodInDay = bookPeriodInDay;
+    // }
 
     public void setDaypickerLink(final String daypickerLink) {
         this.daypickerLink = daypickerLink;

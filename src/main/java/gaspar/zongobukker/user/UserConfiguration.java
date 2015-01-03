@@ -96,6 +96,7 @@ public class UserConfiguration implements Serializable {
             String status = null;
 
             switch (timeslot.getStatus()) {
+            case TEMPORARILYBLOCKED:
             case BOOKED:
                 status = "WARNING";
                 break;
@@ -110,7 +111,6 @@ public class UserConfiguration implements Serializable {
                 status = "PROCESSING";
                 break;
             case UNKNOWN:
-            case TEMPORARILYBLOCKED:
                 status = "ERROR";
                 break;
             }

@@ -24,7 +24,7 @@ public class ZongobukkBookAction extends WebAction {
 
     private final ZongobukkContext zongobukkContext;
 
-    private final ExecutorService bookExecutorService = Executors.newCachedThreadPool();
+    private final ExecutorService bookExecutorService = Executors.newSingleThreadExecutor();
 
     private UrlBuilder urlBuilder;
 

@@ -3,7 +3,7 @@ package gaspar.zongobukker;
 import gaspar.web.WebManipulatorFacade;
 import gaspar.zongobukker.bean.Timeslot;
 import gaspar.zongobukker.bean.Timeslot.Status;
-import gaspar.zongobukker.core.PianoRoomFinder;
+import gaspar.zongobukker.core.ZongoRoomBukker;
 import gaspar.zongobukker.web.ZongobukkBookAction;
 import gaspar.zongobukker.web.ZongobukkLoginAction;
 import gaspar.zongobukker.web.ZongobukkLogoutAction;
@@ -20,7 +20,7 @@ public class SimpleZongobukkFacade implements WebManipulatorFacade<ZongobukkSess
 
     private ApplicationContext applicationContext;
 
-    private PianoRoomFinder zongobukkFinder;
+    private ZongoRoomBukker zongoRoomBukker;
 
     public void run(final ZongobukkSession session) {
         if (session.getUserConfiguration().isProcessEnabled()) {
@@ -29,12 +29,19 @@ public class SimpleZongobukkFacade implements WebManipulatorFacade<ZongobukkSess
                 report(session);
 
                 login(session);
+                report(session);
 
                 search(session);
+                report(session);
+
                 calculate(session);
+                report(session);
+
                 modify(session);
+                report(session);
 
                 finalize(session);
+                report(session);
             } catch (final RuntimeException e) {
                 log.error("unhandled error", e);
             } finally {
@@ -76,7 +83,7 @@ public class SimpleZongobukkFacade implements WebManipulatorFacade<ZongobukkSess
 
     @Override
     public void calculate(final ZongobukkSession session) {
-        this.zongobukkFinder.findTimeslots(session.getZongobukkContext());
+        this.zongoRoomBukker.bukkTimeslots(session.getZongobukkContext());
     }
 
     @Override
@@ -95,8 +102,8 @@ public class SimpleZongobukkFacade implements WebManipulatorFacade<ZongobukkSess
         }
     }
 
-    public void setZongobukkFinder(final PianoRoomFinder zongobukkFinder) {
-        this.zongobukkFinder = zongobukkFinder;
+    public void setZongoRoomBukker(final ZongoRoomBukker zongoRoomBukker) {
+        this.zongoRoomBukker = zongoRoomBukker;
     }
 
     @Override

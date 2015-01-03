@@ -70,7 +70,6 @@
 
 	<bean id="timeslotSearchAction" class="gaspar.zongobukker.web.ZongobukkSearchAction"
 		scope="prototype" p:daypickerLink="${gaspar.zongobukker.web.url.daypicker}"
-		p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}"
 		p:validRoomNumbers="${gaspar.zongobukker.room.priority}"
 		p:urlBuilder-ref="urlBuilder" />
 
@@ -93,13 +92,16 @@
 
 	<bean id="timeslotStartComparator" class="gaspar.zongobukker.bean.TimeslotStartComparator" />
 
-	<bean id="zongobukkFinder" class="gaspar.zongobukker.core.PianoRoomFinder"
-		p:maxRetryCount="1" p:bookPeriodInDay="${gaspar.zongobukker.config.bookPeriod}"
+	<bean id="priorityRoomFinder" class="gaspar.zongobukker.core.PriorityRoomFinder"
+		p:pianoRoomPriorityComparator-ref="pianoRoomPriorityComparator"
+		p:timeslotStartComparator-ref="timeslotStartComparator" />
+
+	<bean id="groupingSlotRoomFinder" class="gaspar.zongobukker.core.GroupingSlotRoomFinder"
 		p:pianoRoomPriorityComparator-ref="pianoRoomPriorityComparator"
 		p:timeslotStartComparator-ref="timeslotStartComparator" />
 
 	<bean id="zongobukkFacade" class="gaspar.zongobukker.SimpleZongobukkFacade"
-		p:zongobukkFinder-ref="zongobukkFinder" />
+		p:zongoRoomBukker-ref="groupingSlotRoomFinder" />
 
 	<bean class="gaspar.zongobukker.ZongobukkManager"
 		p:userIndexTable-ref="userIndexTable" p:zongobukkFacade-ref="zongobukkFacade" />

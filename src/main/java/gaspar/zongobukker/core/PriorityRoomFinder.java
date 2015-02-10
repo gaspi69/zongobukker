@@ -8,6 +8,7 @@ import gaspar.zongobukker.bean.TimeslotStatusPredicate;
 import gaspar.zongobukker.bean.ZongobukkContext;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -39,33 +40,44 @@ public class PriorityRoomFinder implements ZongoRoomBukker {
     }
 
     private void checkTimeslots(final List<Timeslot> availableTimeslots, final List<Timeslot> timeslotsToBook) {
+        final Calendar now = Calendar.getInstance();
+
         for (final Timeslot timeslotToBook : timeslotsToBook) {
-            final Iterable<Timeslot> possibleTimeslotIterable = Iterables.filter(availableTimeslots, new TimeslotStartPredicate(timeslotToBook.getStartDate()));
-
-            final Optional<Timeslot> alreadyBookedTimeslot = Iterables.tryFind(possibleTimeslotIterable, new TimeslotStatusPredicate(Timeslot.Status.MYBOOKING));
-            if (alreadyBookedTimeslot.isPresent()) {
-                timeslotToBook.setStatus(Timeslot.Status.MYBOOKING);
-                timeslotToBook.getComment().append(" - Timeslot already booked at room #").append(alreadyBookedTimeslot.get().getRoomNumber());
-                timeslotToBook.setRoomNumber(alreadyBookedTimeslot.get().getRoomNumber());
-
-                log.info("Timeslot already booked for this person: {}", timeslotToBook);
-            } else if (!Iterables.isEmpty(possibleTimeslotIterable)) {
-                if (Iterables.all(possibleTimeslotIterable, new TimeslotStatusPredicate(Timeslot.Status.BOOKED))) {
-                    timeslotToBook.getComment().append(" - all room booked by others :(");
-                    timeslotToBook.setStatus(Timeslot.Status.BOOKED);
-
-                    log.warn("Timeslot booked in all room booked by others: {}", timeslotToBook);
-                } else if (Iterables.all(possibleTimeslotIterable, new TimeslotStatusPredicate(Timeslot.Status.TEMPORARILYBLOCKED))) {
-                    timeslotToBook.getComment().append(" - all room temporarly unavailable :(");
-                    timeslotToBook.setStatus(Timeslot.Status.TEMPORARILYBLOCKED);
-
-                    log.warn("Timeslot temporarly unavailable all room: {}", timeslotToBook);
-                }
-            } else {
-                timeslotToBook.getComment().append(" - Timeslot not available yet");
+            if (now.after(timeslotToBook.getStartDate())) {
+                timeslotToBook.getComment().append(" - Timeslot in the past");
                 timeslotToBook.setStatus(Timeslot.Status.FREE);
 
-                log.info("Timeslot not available yet: {}", timeslotToBook);
+                log.info("Timeslot in the past: {}", timeslotToBook);
+            } else {
+                final Iterable<Timeslot> possibleTimeslotIterable = Iterables.filter(availableTimeslots,
+                        new TimeslotStartPredicate(timeslotToBook.getStartDate()));
+
+                final Optional<Timeslot> alreadyBookedTimeslot = Iterables.tryFind(possibleTimeslotIterable,
+                        new TimeslotStatusPredicate(Timeslot.Status.MYBOOKING));
+                if (alreadyBookedTimeslot.isPresent()) {
+                    timeslotToBook.setStatus(Timeslot.Status.MYBOOKING);
+                    timeslotToBook.getComment().append(" - Timeslot already booked at room #").append(alreadyBookedTimeslot.get().getRoomNumber());
+                    timeslotToBook.setRoomNumber(alreadyBookedTimeslot.get().getRoomNumber());
+
+                    log.info("Timeslot already booked for this person: {}", timeslotToBook);
+                } else if (!Iterables.isEmpty(possibleTimeslotIterable)) {
+                    if (Iterables.all(possibleTimeslotIterable, new TimeslotStatusPredicate(Timeslot.Status.BOOKED))) {
+                        timeslotToBook.getComment().append(" - all room booked by others :(");
+                        timeslotToBook.setStatus(Timeslot.Status.BOOKED);
+
+                        log.warn("Timeslot booked in all room booked by others: {}", timeslotToBook);
+                    } else if (Iterables.all(possibleTimeslotIterable, new TimeslotStatusPredicate(Timeslot.Status.TEMPORARILYBLOCKED))) {
+                        timeslotToBook.getComment().append(" - all room temporarly unavailable :(");
+                        timeslotToBook.setStatus(Timeslot.Status.TEMPORARILYBLOCKED);
+
+                        log.warn("Timeslot temporarly unavailable all room: {}", timeslotToBook);
+                    }
+                } else {
+                    timeslotToBook.getComment().append(" - Timeslot not available");
+                    timeslotToBook.setStatus(Timeslot.Status.FREE);
+
+                    log.info("Timeslot not available: {}", timeslotToBook);
+                }
             }
         }
     }

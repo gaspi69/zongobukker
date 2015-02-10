@@ -36,6 +36,7 @@ public class ZongobukkManager implements ApplicationContextAware {
 
                 this.zongobukkFacade.run(session);
 
+                browserInstance.destroy();
             } catch (final Exception e) {
                 log.error("Booking failed for: " + userString, e);
             }

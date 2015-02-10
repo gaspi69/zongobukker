@@ -4,7 +4,7 @@
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
 	<appender name="FileLog" class="org.apache.log4j.DailyRollingFileAppender">
 		<param name="threshold" value="info" />
-		<param name="file" value="/logs/zongobukker.log" />
+		<param name="file" value="/logs/zongobukker/dev.log" />
 		<param name="encoding" value="utf-8" />
 		<param name="immediateFlush" value="true" />
 		<layout class="org.apache.log4j.PatternLayout">
@@ -31,6 +31,14 @@
 
 	<logger name="net">
 		<level value="warn" />
+	</logger>
+
+	<logger name="com">
+		<level value="warn" />
+	</logger>
+
+	<logger name="com.gargoylesoftware.htmlunit">
+		<level value="fatal" />
 	</logger>
 
 	<logger name="org">

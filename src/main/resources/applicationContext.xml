@@ -20,6 +20,9 @@
 
 	</bean>
 
+	<bean id="seleniumServer" class="org.openqa.selenium.server.SeleniumServer"
+		init-method="start" destroy-method="stop" />
+
 	<!-- Google AUTH -->
 
 	<bean id="googleServiceAuthenticator" class="gaspar.google.data.GoogleServiceAuthenticator"
@@ -74,9 +77,7 @@
 		p:urlBuilder-ref="urlBuilder" />
 
 	<bean id="zongobukkBookAction" class="gaspar.zongobukker.web.ZongobukkBookAction"
-		scope="prototype" p:alreadyBookedMessage="${gaspar.zongobukker.message.alreadyBooked}"
-		p:succesfullMessage="${gaspar.zongobukker.message.successful}"
-		p:subscribeUrlPattern="${gaspar.zongobukker.web.url.book.subscribe}"
+		scope="prototype" p:subscribeUrlPattern="${gaspar.zongobukker.web.url.book.subscribe}"
 		p:urlBuilder-ref="urlBuilder" />
 
 	<!-- WEB stuff END -->

@@ -30,9 +30,6 @@ public class ZongobukkBookAction extends WebAction {
 
     private String subscribeUrlPattern;
 
-    private String succesfullMessage;
-    private String alreadyBookedMessage;
-
     private ZongobukkBookAction(final ZongobukkSession session) {
         super(session.getDriver());
         this.zongobukkContext = session.getZongobukkContext();
@@ -66,13 +63,13 @@ public class ZongobukkBookAction extends WebAction {
 
         @Override
         public void run() {
-            log.info("Booking slot: {}", this.timeslot);
+            log.debug("Booking slot: {}", this.timeslot);
 
             try {
                 final String actionLink = ZongobukkBookAction.this.urlBuilder.buildUrl(ZongobukkBookAction.this.subscribeUrlPattern,
                         this.timeslot.getRoomNumber(), DateUtil.getHours(this.timeslot.getStartDate())).toExternalForm();
 
-                log.debug("Booking {} on URL {}", this.timeslot, actionLink);
+                log.info("Booking {} on URL {}", this.timeslot, actionLink);
 
                 openPage(actionLink);
 
@@ -97,10 +94,10 @@ public class ZongobukkBookAction extends WebAction {
 
                         if (alertText == null) {
                             throw new IllegalStateException("Alert text is null");
-                        } else if (alertText.matches(ZongobukkBookAction.this.alreadyBookedMessage)) {
-                            log.warn("Timeslot already booked: {}", this.timeslot);
-                        } else if (alertText.matches(ZongobukkBookAction.this.succesfullMessage)) {
-                            log.info("Timeslot successfully booked: {}", this.timeslot);
+                            // } else if (alertText.matches(ZongobukkBookAction.this.alreadyBookedMessage)) {
+                            // log.warn("Timeslot already booked: {}", this.timeslot);
+                            // } else if (alertText.matches(ZongobukkBookAction.this.succesfullMessage)) {
+                            // log.info("Timeslot successfully booked: {}", this.timeslot);
                         }
 
                         alertBox.accept();
@@ -116,14 +113,6 @@ public class ZongobukkBookAction extends WebAction {
                 }
             }
         }
-    }
-
-    public void setSuccesfullMessage(final String succesfullMessage) {
-        this.succesfullMessage = succesfullMessage;
-    }
-
-    public void setAlreadyBookedMessage(final String alreadyBookedMessage) {
-        this.alreadyBookedMessage = alreadyBookedMessage;
     }
 
     public void setSubscribeUrlPattern(final String subscribeUrlPattern) {
